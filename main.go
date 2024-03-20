@@ -42,6 +42,7 @@ func (s *SliceValue) Migrate(table string) bool {
 }
 
 func main() {
+	fmt.Printf("RMS (Rename My Schema) Version: %v\n", Version)
 	flag.Var(&tables, "table", "table to be migrated")
 	flag.Parse()
 
