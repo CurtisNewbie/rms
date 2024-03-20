@@ -15,10 +15,36 @@ var (
 	port     = flag.Int("port", 3306, "port")
 	from     = flag.String("from", "", "from schema name")
 	to       = flag.String("to", "", "to schema name")
+	tables   = SliceValue{}
 )
 
+type SliceValue []string
+
+func (s *SliceValue) String() string {
+	return fmt.Sprintf("%v", []string(*s))
+}
+
+func (s *SliceValue) Set(value string) error {
+	*s = append(*s, value)
+	return nil
+}
+
+func (s *SliceValue) Migrate(table string) bool {
+	if len(*s) < 1 {
+		return true
+	}
+	for _, v := range *s {
+		if v == table {
+			return true
+		}
+	}
+	return false
+}
+
 func main() {
+	flag.Var(&tables, "table", "table to be migrated")
 	flag.Parse()
+
 	if err := FlagsMustPresent("from", "to"); err != nil {
 		fmt.Println(err)
 		return
@@ -28,14 +54,14 @@ func main() {
 		fmt.Printf("Failed to connect database, %v", err)
 		return
 	}
-	if err := MigrateSchema(db, *from, *to); err != nil {
+	if err := MigrateSchema(db, *from, *to, tables); err != nil {
 		fmt.Printf("Failed to migrate schema from %v to %v, %v\n", *from, *to, err)
 		return
 	}
 	fmt.Printf("Finished migrating schema from %v to %v\n", *from, *to)
 }
 
-func MigrateSchema(db *gorm.DB, from string, to string) error {
+func MigrateSchema(db *gorm.DB, from string, to string, tableArg SliceValue) error {
 	tables, err := ListTables(db, from)
 	if err != nil {
 		return fmt.Errorf("failed to list tables in %v, %v", from, err)
@@ -46,12 +72,12 @@ func MigrateSchema(db *gorm.DB, from string, to string) error {
 	}
 
 	for _, t := range tables {
+		if !tableArg.Migrate(t) {
+			continue
+		}
 		if err := CopyTableStruct(db, from, to, t); err != nil {
 			return fmt.Errorf("failed to copy table structure, %v, %v", t, err)
 		}
-	}
-
-	for _, t := range tables {
 		if err := CopyTableData(db, from, to, t); err != nil {
 			return fmt.Errorf("failed to copy table structure, %v, %v", t, err)
 		}
