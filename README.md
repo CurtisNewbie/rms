@@ -3,7 +3,8 @@
 Rename My Schema
 
 ```
-Usage of rms
+RMS (Rename My Schema) Version: v0.0.1
+Usage of rms:
   -from string
         from schema name
   -host string
@@ -12,6 +13,8 @@ Usage of rms
         password
   -port int
         port (default 3306)
+  -table value
+        table to be migrated
   -to string
         to schema name
   -user string
