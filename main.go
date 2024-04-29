@@ -76,23 +76,16 @@ func MigrateSchema(db *gorm.DB, from string, to string, tableArg SliceValue) err
 		if !tableArg.Migrate(t) {
 			continue
 		}
-		if err := CopyTableStruct(db, from, to, t); err != nil {
-			return fmt.Errorf("failed to copy table structure, %v, %v", t, err)
-		}
-		if err := CopyTableData(db, from, to, t); err != nil {
-			return fmt.Errorf("failed to copy table structure, %v, %v", t, err)
+		if err := RenameTable(db, from, to, t); err != nil {
+			return fmt.Errorf("failed to rename table, %v, %v", t, err)
 		}
 	}
 
 	return nil
 }
 
-func CopyTableStruct(db *gorm.DB, from string, to string, table string) error {
-	return db.Exec(fmt.Sprintf(`CREATE TABLE %v.%v LIKE %v.%v`, to, table, from, table)).Error
-}
-
-func CopyTableData(db *gorm.DB, from string, to string, table string) error {
-	return db.Exec(fmt.Sprintf(`INSERT INTO %v.%v SELECT * FROM %v.%v`, to, table, from, table)).Error
+func RenameTable(db *gorm.DB, from string, to string, table string) error {
+	return db.Exec(fmt.Sprintf(`RENAME TABLE %v.%v TO %v.%v`, from, table, to, table)).Error
 }
 
 func FlagsMustPresent(names ...string) error {
